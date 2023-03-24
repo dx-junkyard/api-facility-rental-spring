@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxjunkyard.rental.repository.dao.mapper.RentalMapper">
+    <insert id="addReservation" parameterType="java.util.List">
+        insert into FacilityReservations(
+        facility_id
+        ,event_id
+        ,renter_id
+        ,start_date
+        ,end_date
+        ,comment
+        ,status
+        ) values
+        <foreach collection="reservationList" item="rl" separator=",">
+            (
+            #{rl.facilityId}
+            ,#{rl.eventId}
+            ,#{rl.renterId}
+            ,#{rl.startDate}
+            ,#{rl.endDate}
+            ,#{rl.comment}
+            ,0
+            )
+        </foreach>
+    </insert>
+    <insert id="addIncludeSportRental">
+        insert into IncludeSportRental(event_id,sport_event_id)
+        values((select max(ev.event_id) from Rental ev),#{sportRentalId})
+    </insert>
+    <insert id="addIncludeSportRental_old">
+        insert into IncludeSportRental(event_id,sport_event_id)
+        values((select auto_increment from information_schema.tables where table_schema = (select database()) and table_name = 'Rental'),#{sportRentalId})
+    </insert>
+
+    <select id="getReservationIdList" resultType="Integer">
+        select distinct reservation_id
+        from FacilityReservations fr
+                 left join Facilities fa
+                           on fr.facility_id = fa.facility_id
+                 left join Owners ow
+                           on fa.owner_id = ow.owner_id
+        where fr.start_date = #{today} and ow.counter_id = #{counterId} and fr.renter_id = #{renterId}
+    </select>
+    <select id="getRental" resultType="com.dxjunkyard.rental.domain.RentalFlatten">
+        select
+            reservation_id as reservationId
+             , facility_id as facilityId
+             , event_id as eventId
+             , renter_id as renterId
+             , start_date as startDate
+             , end_date as endDate
+             , usage_date as usageDate
+             , comment as comment
+        from FacilityReservations
+        where reservation_id = #{reservationId}
+    </select>
+
+    <select id="getIncludedSportEvent" resultType="com.dxjunkyard.rental.domain.SportEvent">
+        select
+            se.sport_event_id as sportRentalId
+             , se.name as name
+             , se.comment as comment
+        from SportRental as se
+                 left join IncludeSportRental as ise
+                           on se.sport_event_id = ise.sport_event_id
+        where ise.event_id = #{event_id}
+    </select>
+</mapper>
